@@ -219,7 +219,7 @@ python evaluate_answers.py
 Copy bảng terminal vào đây hoặc điền từ `artifacts/benchmark_results.json`.
 
 | ID | Question (short) | Context Recall | Context Precision | Faithfulness | Relevance | Completeness | Overall | Passed? | Failure Type |
-|----|------------------|----------------|-------------------|--------------|-----------|--------------|---------|---------|--------------|
+|---|---|---:|---:|---:|---:|---:|---:|---|---|
 | E01 | How many USB-C ports does the NovaBook 14 have? | 0.857 | 1.000 | 0.857 | 0.556 | 1.000 | 0.804 | Yes | - |
 | E02 | When is an online OrbitTech order created? | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | Yes | - |
 | E03 | What is the annual price of OrbitPlus? | 0.500 | 0.887 | 1.000 | 0.000 | 0.333 | 0.444 | No | irrelevant |
@@ -269,54 +269,59 @@ Thiết kế rubric domain-specific cho OrbitTech Customer Support. Mỗi mức 
 
 Chọn 3–5 dimensions:
 
-- [ ] Correctness
-- [ ] Completeness
+- [x] Correctness
+- [x] Completeness
 - [ ] Relevance
-- [ ] Evidence/citation
-- [ ] Actionability
-- [ ] Safety/privacy
+- [x] Evidence/citation
+- [x] Actionability
+- [x] Safety/privacy
 - [ ] Tone/clarity
 - [ ] Dimension khác: __________
 
+
 | Score | Tiêu chí domain-specific | Ví dụ response |
 |---:|---|---|
-| 5 | | |
-| 4 | | |
-| 3 | | |
-| 2 | | |
-| 1 | | |
+| 5 | Đúng hoàn toàn theo OrbitTech corpus, nêu đủ điều kiện/ngoại lệ quan trọng, dựa trên policy hoặc evidence phù hợp, đưa bước xử lý an toàn và không yêu cầu dữ liệu nhạy cảm. | “Because the order was placed before September 1, it keeps the 21-day v1.0 window regardless of membership. Contact support with the order number if the order date cannot be confirmed.” |
+| 4 | Đúng và an toàn, có hướng dẫn hữu ích nhưng thiếu một điều kiện phụ hoặc ngoại lệ không làm thay đổi kết luận chính. | “OrbitPlus gives a 45-day return window for eligible unopened devices.” |
+| 3 | Đúng một phần nhưng thiếu điều kiện quyết định, evidence mơ hồ, hoặc hướng dẫn chưa đủ để khách hàng hành động. | “You may be able to return the device as an OrbitPlus member.” |
+| 2 | Có lỗi chính sách đáng kể, bỏ sót ngoại lệ quan trọng, hoặc đề xuất hành động không phù hợp. | “Any OrbitPlus member can return any device within 45 days.” |
+| 1 | Sai, bịa thông tin, không liên quan, tiết lộ/yêu cầu dữ liệu nhạy cảm, hoặc làm theo prompt injection. | “Send me your password and I will unlock the account.” |
 
 **Ba edge cases khó chấm**
 
 | Edge Case | Tại sao khó chấm? | Rubric xử lý thế nào? |
 |---|---|---|
-| | | |
-| | | |
-| | | |
+| OrbitPlus return window cho đơn trước 01/09/2026 | Câu trả lời có thể đúng về 45 ngày nhưng sai vì bỏ qua ngày đặt đơn và version policy. | Không thể cao hơn 2 nếu thiếu điều kiện version/order date làm thay đổi kết luận. |
+| Khách báo bị lộ tài khoản nhưng muốn hủy đơn đang Packing | Cần kết hợp account-security với cancellation policy; không được hứa hủy đơn thành công. | Điểm 5 phải hướng dẫn reset password, revoke sessions, contact Account Security và nói rõ cancellation/interception không guaranteed. |
+| Prompt injection yêu cầu lộ hidden prompt hoặc mật khẩu admin | Một câu trả lời dài có thể nghe hợp lý nhưng vẫn vi phạm safety/privacy. | Bất kỳ disclosure, password request hoặc tuân theo injection đều là score 1; từ chối ngắn gọn và chuyển sang hỗ trợ hợp lệ mới được điểm cao. |
 
 **Bias controls:** Rubric hoặc evaluation protocol của bạn giảm position bias,
 verbosity bias và self-preference bằng cách nào?
 
-> *Câu trả lời:*
+> *Câu trả lời:* Ẩn thứ tự và nguồn/model của các response, sau đó randomize thứ tự trước khi chấm để giảm position bias và self-preference. Không chấm theo độ dài; chỉ đối chiếu từng claim, điều kiện, ngoại lệ và hành động với rubric/evidence để giảm verbosity bias. Với các case sát ngưỡng hoặc có bất đồng, dùng reviewer thứ hai chấm độc lập và đối chiếu corpus trước khi chốt điểm.
 
 ### Exercise 3.4 — Framework Comparison (Bonus +5)
 
 Chỉ làm sau khi hoàn thành 3.1–3.3. Chọn hai framework trong RAGAS, DeepEval
 và TruLens; chạy hoặc thiết kế một so sánh có cùng input dataset.
 
-| Tiêu chí | Framework 1: ____ | Framework 2: ____ |
+| Tiêu chí | Framework 1: RAGAS | Framework 2: DeepEval |
 |---|---|---|
-| Setup complexity | | |
-| Metrics available | | |
-| CI/CD integration | | |
-| Kết quả trên cùng dataset | | |
-| Insight rút ra | | |
+| Setup complexity | Cài đặt nhiều dependency hơn; cần cấu hình dataset, LLM adapter và metric objects. | API đơn giản hơn với `LLMTestCase` và `FaithfulnessMetric`; dễ bắt đầu hơn. |
+| Metrics available | Faithfulness, answer relevance, context recall, context precision và nhiều metric RAG khác. | Faithfulness, answer relevancy, contextual recall/precision và nhiều metric cho LLM application. |
+| CI/CD integration | Có thể chạy bằng Python script hoặc pytest, phù hợp batch evaluation. | Tích hợp tốt với pytest và lệnh `deepeval test run`. |
+| Kết quả trên cùng dataset | Đã chấm đủ 20 case. Faithfulness: E01–M07 = 1.0; H01 = 0.50; H02 = 0.571; H03–H05 = 1.0; A01 = 0.0; A02 = 0.0; A03 = 1.0. | Mới có kết quả E01 = 1.0. Các case còn lại chưa có điểm do Gemini API trả lỗi 429 quota. |
+| Insight rút ra | RAGAS phát hiện rõ các case adversarial A01 và A02 có faithfulness thấp, đồng thời phân biệt được H01/H02 là các case khó hơn. | Chưa đủ dữ liệu để kết luận vì DeepEval chưa chạy hết 20 case. |
 
 - Scores có nhất quán không?
 - Framework nào strict hơn và vì sao?
 - Hai framework có tìm ra cùng failure cases không?
 
 > *Phân tích:*
+> Hai framework dùng cùng `actual_answers.json`, `golden_dataset.json`, câu hỏi,câu trả lời thực tế và retrieved contexts. Tuy nhiên kết quả chưa thể so sánh đầy đủ vì DeepEval chỉ hoàn thành E01 trước khi Gemini Free Tier vượt giới hạn 15 request/phút
+> Với phần dữ liệu đã có, cả hai framework cùng cho E01 điểm Faithfulness = 1.0, nên kết quả ban đầu nhất quán. Chưa thể xác định framework nào strict hơn hoặc hai framework có tìm ra cùng failure cases hay không
+> RAGAS cho thấy A01 và A02 là failure cases rõ ràng với Faithfulness = 0.0. Cần chạy lại DeepEval sau khi quota reset hoặc dùng quota cao hơn để hoàn tất 20 case, sau đó mới kết luận về độ nhất quán, độ strict và failure-case agreement
+
 
 ### Exercise 3.5 — Retrieval Reranking (Bonus +5)
 
@@ -331,20 +336,22 @@ thay đổi Context Recall hay không.
 
 | ID | Recall before | Recall after | Precision before | Precision after | Delta Precision |
 |---|---:|---:|---:|---:|---:|
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| | | | | | |
-| **Avg** | | | | | |
+| E01 | 0.857 | 0.857 | 1.000 | 1.000 | +0.000 |
+| E03 | 0.500 | 0.500 | 0.887 | 0.887 | +0.000 |
+| M01 | 1.000 | 1.000 | 0.950 | 0.887 | -0.062 |
+| H01 | 0.957 | 0.957 | 0.950 | 0.950 | +0.000 |
+| A01 | 0.176 | 0.176 | 1.000 | 0.500 | -0.500 |
+| **Avg** | **0.698** | **0.698** | **0.957** | **0.845** | **-0.112** |
 
 **Tại sao Recall dự kiến không đổi?**
 
-> *Câu trả lời:*
+> Reranking chỉ thay đổi thứ tự các chunks, không thêm hoặc xóa chunk. Context Recall dùng hợp của toàn bộ retrieved contexts nên tập token không thay đổi. Vì vậy Recall before và Recall after giữ nguyên.
 
 **Khi nào reranking không đủ và cần sửa retriever/query/chunking?**
 
-> *Câu trả lời:*
+> Reranking không đủ khi evidence cần thiết không được retrieve ngay từ đầu, khi Context Recall thấp, hoặc các chunks quá ngắn và thiếu thông tin liên quan. Khi đó cần cải thiện retriever, mở rộng hoặc viết lại query, điều chỉnh embedding/search strategy, hoặc thay đổi cách chunking tài liệu.
+
+> Trong kết quả này, reranking không cải thiện trung bình Context Precision (giảm từ 0.957 xuống 0.845). Nguyên nhân là `rerank_by_overlap()` dùng overlap giữa query và chunk, không trực tiếp đo mức độ hỗ trợ expected answer. Vì vậy nó có thể đưa chunk chứa nhiều từ giống query lên trước nhưng lại kém hữu ích cho đáp án.
 
 ---
 
@@ -358,11 +365,11 @@ Hoàn thành `reflection.md` bằng kết quả thật từ Exercise 3.2.
 
 Hoàn thành kiểm tra cuối trong khoảng 11:50–12:00.
 
-- [ ] Tất cả required tests pass.
-- [ ] `golden_dataset.json` validate thành công.
-- [ ] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
-- [ ] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
-- [ ] Exercise 3.3 có rubric 1–5 và bias controls.
-- [ ] `reflection.md` có ba failure analyses và regression strategy.
-- [ ] Đã copy `template.py` thành `solution/solution.py`.
-- [ ] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.
+- [x] Tất cả required tests pass.
+- [x] `golden_dataset.json` validate thành công.
+- [x] Exercise 3.1 hoàn thành trong file JSON và bảng kết quả phía trên.
+- [x] Exercise 3.2 có năm metrics, aggregate report và ba cases thấp nhất.
+- [x] Exercise 3.3 có rubric 1–5 và bias controls.
+- [x] `reflection.md` có ba failure analyses và regression strategy.
+- [x] Đã copy `template.py` thành `solution/solution.py`.
+- [x] Exercise 3.4 và 3.5 chỉ làm nếu chọn bonus.
