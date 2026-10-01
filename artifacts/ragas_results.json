@@ -1,0 +1,86 @@
+{
+  "framework": "ragas",
+  "model": "gemini-3.5-flash-lite",
+  "results": [
+    {
+      "id": "E01",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "E02",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "E03",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "E04",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "E05",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M01",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M02",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M03",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M04",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M05",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M06",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "M07",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "H01",
+      "faithfulness": 0.5
+    },
+    {
+      "id": "H02",
+      "faithfulness": 0.5714285714285714
+    },
+    {
+      "id": "H03",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "H04",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "H05",
+      "faithfulness": 1.0
+    },
+    {
+      "id": "A01",
+      "faithfulness": 0.0
+    },
+    {
+      "id": "A02",
+      "faithfulness": 0.0
+    },
+    {
+      "id": "A03",
+      "faithfulness": 1.0
+    }
+  ]
+}
