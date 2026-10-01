@@ -30,11 +30,11 @@ critical.
 
 | Metric | Acceptable Low Score Scenario | Critical Low Score Scenario | Action Required |
 |---|---|---|---|
-| Faithfulness | | | |
-| Answer Relevance | | | |
-| Context Recall | | | |
-| Context Precision | | | |
-| Completeness | | | |
+| Faithfulness | Score thấp do câu trả lời có thêm kiến thức phổ biến hoặc diễn giải ngoài context nhưng vẫn đúng. | Model tạo thông tin không có trong context, hallucination hoặc mâu thuẫn với tài liệu nguồn. | Kiểm tra grounding, prompt và retrieved context; yêu cầu model trả lời dựa trên context. |
+| Answer Relevance | Câu trả lời đúng nhưng có thêm giải thích, ví dụ hoặc thông tin phụ không cần thiết. | Câu trả lời lệch câu hỏi, không giải quyết user intent hoặc sai chủ đề. | Tối ưu prompt, làm rõ query/user intent và giảm nội dung không liên quan. |
+| Context Recall | Một số tài liệu liên quan không được retrieve nhưng context hiện tại vẫn đủ để trả lời đúng. | Retriever bỏ sót thông tin quan trọng khiến model không thể trả lời đúng hoặc đầy đủ. | Cải thiện retrieval: embedding, chunking, `top-k`, query rewriting hoặc hybrid search. |
+| Context Precision | Retrieve thêm một số chunk không liên quan nhưng các chunk cần thiết vẫn xuất hiện. | Phần lớn context không liên quan, gây nhiễu hoặc làm thông tin quan trọng bị loại khỏi context window. | Cải thiện ranking/reranking, giảm `top-k`, cải thiện embedding và filtering. |
+| Completeness | Thiếu một vài chi tiết phụ nhưng vẫn trả lời đầy đủ phần chính của câu hỏi. | Bỏ sót các ý hoặc thông tin thiết yếu khiến câu trả lời không đáp ứng yêu cầu. | Kiểm tra context có đủ dữ liệu không; cải thiện retrieval và prompt để bao phủ đầy đủ các ý. |
 
 ### Exercise 1.2 — Bias trong LLM-as-a-Judge
 
@@ -46,15 +46,44 @@ Ba bias thường gặp:
 
 **Câu 1: Thiết kế experiment phát hiện position bias với ít nhất hai conditions.**
 
-> *Câu trả lời:*
+> Sử dụng cùng hai câu trả lời **A** và **B**, nhưng thay đổi thứ tự:
+>
+> - **Condition 1:** A xuất hiện trước, B xuất hiện sau → Judge chọn answer tốt hơn.
+> - **Condition 2:** B xuất hiện trước, A xuất hiện sau → Judge tiếp tục đánh giá.
+>
+> Nếu kết quả thay đổi đáng kể khi chỉ đổi thứ tự A/B, ví dụ A thắng khi đứng trước nhưng B thắng khi B đứng trước, thì có dấu hiệu **position bias**.
+>
+> Có thể đo bằng **flip rate**:
+>
+> `Flip Rate = Số lần kết quả thay đổi khi đảo vị trí / Tổng số cặp đánh giá`
+>
+> Flip rate càng cao → position bias càng lớn.
+
 
 **Câu 2: Làm thế nào giảm verbosity bias bằng rubric design?**
 
-> *Câu trả lời:*
+> Thiết kế rubric tập trung vào **chất lượng thay vì độ dài**, ví dụ:
+>
+> - Chấm riêng **correctness**, **relevance**, **faithfulness** và **completeness**.
+> - Không cộng điểm chỉ vì answer dài hoặc chi tiết hơn.
+> - Quy định rõ thông tin dư thừa, lặp lại hoặc không liên quan **không làm tăng điểm**.
+> - Có thể thêm tiêu chí **conciseness** để phạt nội dung dài dòng không cần thiết.
+>
+> Như vậy, một answer ngắn nhưng đúng và đầy đủ vẫn có thể đạt điểm cao hơn answer dài nhưng chứa nhiều thông tin thừa.
+
 
 **Câu 3: Tại sao cần calibrate LLM judge với human labels?**
 
-> *Câu trả lời:*
+> Cần calibrate LLM judge với **human labels** để kiểm tra điểm của LLM có phù hợp với đánh giá của con người hay không.
+>
+> Human labels đóng vai trò **reference/gold standard**, giúp:
+>
+> - Phát hiện các bias của LLM judge.
+> - Kiểm tra mức độ tương quan giữa LLM và human evaluation.
+> - Điều chỉnh prompt, rubric hoặc scoring threshold.
+> - Tránh trường hợp judge cho điểm cao nhưng con người đánh giá answer có chất lượng thấp.
+>
+> Nếu mức độ agreement giữa LLM judge và human labels thấp, cần cải thiện hoặc calibrate lại judge trước khi sử dụng để đánh giá hệ thống ở quy mô lớn.
 
 ### Exercise 1.3 — Evaluation trong CI/CD
 
@@ -62,13 +91,19 @@ Ba bias thường gặp:
 
 | Metric | Threshold | Lý do |
 |---|---:|---|
-| Faithfulness | | |
-| Answer Relevance | | |
-| Completeness | | |
+| Faithfulness | < 0.8 → Block | Faithfulness thấp cho thấy answer có nguy cơ không dựa trên context hoặc hallucination. Đây là metric quan trọng nên cần threshold cao. |
+| Answer Relevance | < 0.7 → Block | Score thấp cho thấy answer không giải quyết đúng câu hỏi hoặc user intent. Mức 0.7 cho phép một lượng nhỏ thông tin phụ nhưng vẫn yêu cầu answer đủ liên quan. |
+| Completeness | < 0.7 → Block | Score thấp cho thấy answer bỏ sót nhiều thông tin quan trọng. Có thể chấp nhận thiếu một số chi tiết phụ nhưng không được thiếu nội dung chính. |
 
 **Câu 2: Khi nào dùng offline evaluation, online evaluation và human review?**
 
-> *Câu trả lời:*
+
+> - Offline evaluation: Dùng trước deployment hoặc khi phát triển model/pipeline. Chạy trên dataset/test set cố định để so sánh các phiên bản, prompt, model hoặc RAG pipeline.
+>
+> - Online evaluation: Dùng sau deployment trên dữ liệu và tương tác thực tế của người dùng. Giúp theo dõi performance, phát hiện regression và các failure case trong production.
+>
+> - Human review: Dùng khi cần đánh giá những trường hợp khó, mơ hồ hoặc có rủi ro cao, đặc biệt khi automated metrics hoặc LLM judge không đủ đáng tin cậy.
+>
 
 ---
 
